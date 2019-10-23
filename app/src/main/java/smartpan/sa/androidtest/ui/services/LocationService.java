@@ -9,17 +9,31 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+
+import org.greenrobot.eventbus.EventBus;
+
 import smartpan.sa.androidtest.R;
 import smartpan.sa.androidtest.ui.activities.main.MainActivity;
 
 public class LocationService extends Service {
+
     private static final int NOTIFICATION_ID = 12;
     private static final String CHANNEL_DEFAULT_IMPORTANCE = "CHANNEL_DEFAULT_IMPORTANCE";
+
+    private FusedLocationProviderClient mFusedLocationClient;
+    private LocationCallback mLocationCallback;
+    private LocationRequest mLocationRequest;
 
     private Handler handler = new Handler();
     private Runnable runnable = new Runnable() {
@@ -39,26 +53,46 @@ public class LocationService extends Service {
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        handler.postDelayed(runnable, 1000);
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         initNotification();
+
+        mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    return;
+                }
+
+                EventBus.getDefault().post(locationResult.getLastLocation());
+            }
+        };
+
+        buildLocationRequest();
+        startLocationUpdates();
         return START_STICKY;
     }
 
+    private synchronized void buildLocationRequest() {
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-
-
-        handler.postDelayed(runnable, 1000);
-
+        if (mLocationRequest == null) {
+            mLocationRequest = LocationRequest.create();
+            mLocationRequest.setInterval(1000);
+            mLocationRequest.setFastestInterval(1000);
+            mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        }
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        handler.removeCallbacks(runnable);
-        handler = null;
+    private void startLocationUpdates() {
+        mFusedLocationClient.requestLocationUpdates(mLocationRequest,
+                mLocationCallback,
+                Looper.getMainLooper());
     }
 
     private void initNotification() {
@@ -82,7 +116,6 @@ public class LocationService extends Service {
 
     }
 
-
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
@@ -92,8 +125,16 @@ public class LocationService extends Service {
             );
 
             NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(serviceChannel);
+            if (manager != null)
+                manager.createNotificationChannel(serviceChannel);
         }
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+        handler.removeCallbacks(runnable);
+        handler = null;
+    }
 }

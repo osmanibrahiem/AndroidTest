@@ -1,7 +1,5 @@
 package smartpan.sa.androidtest.model.DBPresenter;
 
-import android.location.Location;
-
 public interface DBPresenter {
 
 

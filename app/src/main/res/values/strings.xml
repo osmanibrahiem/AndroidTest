@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">AndroidTest</string>
+
+    <string name="title_permission_required">Permission Required</string>
+    <string name="message_need_permission">We need %1$s permissions</string>
+    <string name="btn_go_to_settings">GO TO SETTINGS</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_no">NO</string>
+    <string name="title_gps_dialog">GPS Required</string>
+    <string name="message_need_gps">This app doesn\'t word without GPS, Click OK to try again or NO for goodbye</string>
+    <string name="message_need_location_permission">This app doesn\'t word without Location permission, Click OK to try again or NO for goodbye</string>
+    <string name="txt_location">Your location is :\nLatitude: %1$f \nLongitude: %2$f</string>
 </resources>
