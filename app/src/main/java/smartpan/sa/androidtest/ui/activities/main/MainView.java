@@ -1,6 +1,8 @@
 package smartpan.sa.androidtest.ui.activities.main;
 
-import android.location.Location;
+import java.util.List;
+
+import smartpan.sa.androidtest.model.Location;
 
 interface MainView {
 
@@ -12,5 +14,5 @@ interface MainView {
 
     void showNeedPermissionAlertDialog();
 
-    void onLocationChanged(Location location);
+    void onLineChanged(List<Location> locations);
 }

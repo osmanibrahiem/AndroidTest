@@ -22,17 +22,21 @@ import java.util.List;
 
 import smartpan.sa.androidtest.helper.GpsUtils;
 import smartpan.sa.androidtest.helper.PermissionHelper;
+import smartpan.sa.androidtest.repository.local.DatabaseCallback;
+import smartpan.sa.androidtest.repository.local.LocationClient;
 
 class MainPresenter implements
         LifecycleObserver,
         PermissionHelper.PermissionsListener,
-        GpsUtils.GpsListener {
+        GpsUtils.GpsListener,
+        DatabaseCallback {
 
     private static final int LOCATION_REQUEST_CODE = 10;
     private Activity context;
     private MainView view;
     private PermissionHelper permissionHelper;
     private GpsUtils gpsProvider;
+
     private BroadcastReceiver mGpsSwitchStateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -77,7 +81,9 @@ class MainPresenter implements
 
     void checkLocationPermission() {
         String[] needed_permissions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
-        permissionHelper.requestPermission(needed_permissions, LOCATION_REQUEST_CODE);
+        if (!permissionHelper.checkPermission(needed_permissions))
+            permissionHelper.requestPermission(needed_permissions, LOCATION_REQUEST_CODE);
+        else view.startLocationUpdateService();
     }
 
     @Override
@@ -119,6 +125,34 @@ class MainPresenter implements
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onLocationChanged(Location location) {
-        view.onLocationChanged(location);
+        saveLocation(location);
+    }
+
+    private void saveLocation(Location location) {
+        smartpan.sa.androidtest.model.Location newLocation = new smartpan.sa.androidtest.model.Location();
+        newLocation.setLatitude(location.getLatitude());
+        newLocation.setLongitude(location.getLongitude());
+        LocationClient.getInstance(context.getApplicationContext())
+                .addLocation(this, newLocation);
+    }
+
+    void updateLine() {
+        LocationClient.getInstance(context.getApplicationContext())
+                .getLocations(this);
+    }
+
+    @Override
+    public void onLocationsLoaded(List<smartpan.sa.androidtest.model.Location> locations) {
+        view.onLineChanged(locations);
+    }
+
+    @Override
+    public void onLocationAdded() {
+        updateLine();
+    }
+
+    @Override
+    public void onDataNotAvailable() {
+
     }
 }
